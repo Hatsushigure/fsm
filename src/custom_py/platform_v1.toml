@@ -1,0 +1,636 @@
+
+
+# ------------------------------------------------- PHASE 1 -------------------------------------------------
+
+[[step]]        # 站立 
+mode = 12
+gait_id = 0
+contact = 0
+life_count = 0 #Fake value
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+ctrl_point = [ 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+value = 0
+duration = 500  # Expected execution time of Position interpolation control, For recovery stand need > 5.0S
+
+[[step]]            # 站高高
+mode = 21 #Position interpolation control
+gait_id = 5
+contact = 15 # 0b00001111  :15 Four legs  14:Up front right leg   13:Up front left leg  11:Up back right leg  7:Up back left leg
+life_count = 0
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.26,] # x y z， z:Absolute centroid height
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+ctrl_point = [ 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+value = 0
+duration = 300
+
+[[step]]        # 调整姿态
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 400
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [-0.20, 0.04, 0.0,]
+pos_des = [ 0.0, -0.1, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+ctrl_point = [ 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]    # 抬左腿
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+ctrl_point = [ 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]    #抬左腿
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.20, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.20, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, -0.05, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]            # 四足支撑
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 400
+rpy_des = [0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 400
+rpy_des = [0.15, 0.12, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.04, 0.13, -0.04,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]    #抬右前腿
+mode = 21
+gait_id = 0
+contact = 14
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.02, 0.0, 0.20, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]
+mode = 21
+gait_id = 0
+contact = 14
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.22, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]
+mode = 21
+gait_id = 0
+contact = 14
+life_count = 0
+value = 0
+duration = 200
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 1000
+rpy_des = [ 0.05, 0.08, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.10,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 700
+rpy_des = [ 0.0, 0.12, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.06, 0.06,]
+
+
+# ------------------------------------------------- PHASE 2 -------------------------------------------------
+
+# ------------------------------------------- CYCLE 1 -------------------------------------------
+
+# ------------------------------------- REAR -------------------------------------
+
+[[step]]            # 调整姿态
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 400
+rpy_des = [0.12, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.04, 0.13, -0.04,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿RR
+mode = 21
+gait_id = 0
+contact = 11
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.20, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿RR
+mode = 21
+gait_id = 0
+contact = 11
+life_count = 0
+value = 0
+duration = 200
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.02, 0.0, -0.14, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 700
+rpy_des = [-0.22, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.10, -0.20, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿RL
+mode = 21
+gait_id = 0
+contact = 7
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.20, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿RL
+mode = 21
+gait_id = 0
+contact = 7
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.04, 0.0, -0.16, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+# ------------------------------------- FRONT -------------------------------------
+
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 700
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.05, 0.0, -0.05,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.06, 0.06,]
+
+
+
+[[step]]            # 调整姿态
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 1000
+rpy_des = [0.12, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.13, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿FR
+mode = 21
+gait_id = 0
+contact = 14
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.25, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿FR
+mode = 21
+gait_id = 0
+contact = 14
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.04, 0.0, -0.13, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 1000
+rpy_des = [-0.12, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, -0.13, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿FL
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.25, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿FL
+mode = 21
+gait_id = 0
+contact = 13
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.04, 0.0, -0.13, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 300
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.10, 0.0, -0.05,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.06, 0.06,]
+
+
+# [[step]]        # 站立 
+# mode = 12
+# gait_id = 0
+# contact = 0
+# life_count = 0 #Fake value
+# vel_des = [ 0.0, 0.0, 0.0,]
+# rpy_des = [ 0.0, 0.0, 0.0,]
+# pos_des = [ 0.0, 0.0, 0.0,]
+# acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+# ctrl_point = [ 0.0, 0.0, 0.0,]
+# foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+# step_height = [ 0.0, 0.0,]
+# value = 0
+# duration = 500  # Expected execution time of Position interpolation control, For recovery stand need > 5.0S
+
+
+# ------------------------------------------- CYCLE 2 -------------------------------------------
+# ------------------------------------- REAR -------------------------------------
+
+[[step]]            # 调整姿态
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 400
+rpy_des = [0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.04, 0.13, 0.08,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿RR
+mode = 21
+gait_id = 0
+contact = 11
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.20, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿RR
+mode = 21
+gait_id = 0
+contact = 11
+life_count = 0
+value = 0
+duration = 200
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.02, 0.0, -0.14, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 700
+rpy_des = [0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.04, -0.20, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 抬腿RL
+mode = 21
+gait_id = 0
+contact = 7
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.20, 0.0, 0.10, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+[[step]]            # 落腿RL
+mode = 21
+gait_id = 0
+contact = 7
+life_count = 0
+value = 0
+duration = 100
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ -0.04, 0.0, -0.16, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+# ------------------------------------- FRONT -------------------------------------
+
+
+[[step]]            # 四足站立
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 700
+rpy_des = [ 0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.20, 0.0, -0.05,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.06, 0.06,]
+
+
+
+[[step]]            # 调整姿态
+mode = 21
+gait_id = 0
+contact = 15
+life_count = 0
+value = 0
+duration = 1000
+rpy_des = [0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.00, 0.13, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+
+[[step]]            # 趴下
+mode = 0
+gait_id = 0
+contact = 0
+life_count = 0
+value = 0
+duration = 1000
+rpy_des = [0.0, 0.0, 0.0,]
+vel_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+ctrl_point = [ 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+
+# [[step]]            # 趴下
+# mode = 7
+# gait_id = 1
+# contact = 0
+# life_count = 0
+# value = 0
+# duration = 1000
+# rpy_des = [0.0, 0.0, 0.0,]
+# vel_des = [ 0.0, 0.0, 0.0,]
+# pos_des = [ 0.0, 0.0, 0.0,]
+# acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+# foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,] #x,y,z: Move distance of lifting foot along coordinate axis
+# ctrl_point = [ 0.0, 0.0, 0.0,]
+# step_height = [ 0.0, 0.0,]
+
+
+[[step]]        # 站立 
+mode = 12
+gait_id = 0
+contact = 0
+life_count = 0 #Fake value
+vel_des = [ 0.0, 0.0, 0.0,]
+rpy_des = [ 0.0, 0.0, 0.0,]
+pos_des = [ 0.0, 0.0, 0.0,]
+acc_des = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+ctrl_point = [ 0.0, 0.0, 0.0,]
+foot_pose = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,]
+step_height = [ 0.0, 0.0,]
+value = 0
+duration = 500  # Expected execution time of Position interpolation control, For recovery stand need > 5.0S
