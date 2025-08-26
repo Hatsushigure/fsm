@@ -31,7 +31,7 @@ duration = 5000  # Expected execution time of Position interpolation control, Fo
 [step1]
 mode = 11
 gait_id = 3
-contact = 15
+contact = 0b1111
 life_count = 0 #Fake value
 vel_des = [ 0.0, 0.0, 0.0,]
 rpy_des = [ 0.0, 0.0, 0.0,]
@@ -46,7 +46,7 @@ duration = 0  # Expected execution time of Position interpolation control, For r
 [step2]
 mode = 11
 gait_id = 27
-contact = 15
+contact = 0b1111
 life_count = 0 #Fake value
 vel_des = [ 0.0, 0.0, 0.0,]
 rpy_des = [ 0.0, 0.0, 0.0,]

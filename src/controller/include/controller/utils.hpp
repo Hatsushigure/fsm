@@ -1,99 +1,111 @@
-#ifndef __MY_UTILS_H__
-#define __MY_UTILS_H__
+#ifndef _UTILS_HPP_
+#define _UTILS_HPP_
 
+#include <cstdint>
 #include <filesystem>
-#include <iostream>
+#include <lcm/lcm-cpp.hpp>
 #include <memory>
+#include <rclcpp/logging.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <toml/toml.hpp>
 #include <vector>
-
 #include "robot_control_cmd_lcmt.hpp"
-#include "toml/toml.hpp"
 
-
-/// @brief 查找指定目录下所有 toml 文件
-/// @return 文件相对路径的列表
-std::vector<std::string> findTomlFilesInFolder(std::string_view folderPath) {
+/// @brief Find all `.toml` files in given directory
+/// @return Relative paths of `.toml` files
+std::vector<std::string> findTomlFilesInFolder(std::string_view folderPath)
+{
+    namespace stdfs = std::filesystem;
     std::vector<std::string> tomlFiles;
     for (
         const auto& entry :
-        std::filesystem::recursive_directory_iterator(folderPath)
+        stdfs::recursive_directory_iterator(folderPath)
         )
     {
         if (entry.is_regular_file() && entry.path().extension() == ".toml")
-            tomlFiles.emplace_back(entry.path());
+            tomlFiles.emplace_back(entry.path().string());
     }
     int i = 0;
     for (const auto& filePath : tomlFiles)
     {
-        std::cout << i << ": toml文件: " << filePath << std::endl;
+        RCLCPP_INFO(
+            rclcpp::get_logger("findTomlFilesInFolder"),
+            "Found toml file %d: '%s'",
+            i,
+            filePath.c_str()
+        );
         i++;
     }
     return tomlFiles;
 }
 
-
-/// @brief 获取表数组的内容
+/// @brief Get array of tables
 ///
-/// ps.我不理解为什么要脱裤子放屁
+/// ps. Why? Toml already supports this
 std::vector<robot_control_cmd_lcmt> getTomlArray(
     const toml::value& tomlData,
-    std::int32_t length,
+    std::size_t arrayLen,
     std::string_view prefix
 )
 {
-    std::vector<robot_control_cmd_lcmt> result; // 用于存放所有的消息
-    robot_control_cmd_lcmt robotCtrlCmd;   // 用于存放单个消息
+    std::vector<robot_control_cmd_lcmt> result; // All messages
+    robot_control_cmd_lcmt robotCtrlCmd;        // Temp msg used in loop
     std::stringstream ss;
-    for (auto i = 0; i < length; i++)
+    for (std::size_t i = 0; i < arrayLen; i++)
     {
         ss.clear();
         ss << prefix << i;
-        auto currentItemName = ss.str();
-        std::cout << currentItemName << '\n';
-        auto& test = toml::find(tomlData, currentItemName);    //这里得到的是该step的所有内容
-        robotCtrlCmd.mode = toml::find<std::int8_t>(test, "mode");
-        robotCtrlCmd.gait_id = toml::find<std::int8_t>(test, "gait_id");
-        robotCtrlCmd.contact = toml::find<std::int8_t>(test, "contact");
-        robotCtrlCmd.life_count = toml::find<std::int32_t>(test, "life_count");
-        robotCtrlCmd.duration = toml::find<std::int32_t>(test, "duration");
-        robotCtrlCmd.value = toml::find<std::int32_t>(test, "value");
-        auto vel_get = toml::find(test, "vel_des");
-        auto pos_get = toml::find(test, "pos_des");
-        auto rpy_get = toml::find(test, "rpy_des");
-        auto acc_get = toml::find(test, "acc_des");
-        auto ctrl_get = toml::find(test, "ctrl_point");
-        auto foot_get = toml::find(test, "foot_pose");
-        auto height_get = toml::find(test, "step_height");
+        std::string currentItemName;
+        ss >> currentItemName;
+        ss.str("");
+        RCLCPP_INFO(
+            rclcpp::get_logger("getTomlArray"),
+            "Current item name: %s",
+            currentItemName.c_str()
+        );
+        const auto& item = toml::find(tomlData, currentItemName);
+        robotCtrlCmd.mode = toml::find<std::int8_t>(item, "mode");
+        robotCtrlCmd.gait_id = toml::find<std::int8_t>(item, "gait_id");
+        robotCtrlCmd.contact = toml::find<std::int8_t>(item, "contact");
+        robotCtrlCmd.life_count = toml::find<std::int8_t>(item, "life_count");
+        robotCtrlCmd.duration = toml::find<std::int32_t>(item, "duration");
+        robotCtrlCmd.value = toml::find<std::int32_t>(item, "value");
+        auto velArr = toml::find(item, "vel_des");
+        auto posArr = toml::find(item, "pos_des");
+        auto rpyArr = toml::find(item, "rpy_des");
+        auto accArr = toml::find(item, "acc_des");
+        auto ctrlPointArr = toml::find(item, "ctrl_point");
+        auto footPoseArr = toml::find(item, "foot_pose");
+        auto stepHeightArr = toml::find(item, "step_height");
         for (int j = 0; j < 3; j++)
         {
 
-            robotCtrlCmd.vel_des[j] = toml::find<float>(vel_get, j);
-            robotCtrlCmd.rpy_des[j] = toml::find<float>(rpy_get, j);
-            robotCtrlCmd.pos_des[j] = toml::find<float>(pos_get, j);
-            robotCtrlCmd.acc_des[j] = toml::find<float>(acc_get, j);
-            robotCtrlCmd.acc_des[j + 3] = toml::find<float>(acc_get, j + 3);
-            robotCtrlCmd.ctrl_point[j] = toml::find<float>(ctrl_get, j);
-            robotCtrlCmd.foot_pose[j] = toml::find<float>(foot_get, j);
-            robotCtrlCmd.foot_pose[j + 3] = toml::find<float>(foot_get, j + 3);
+            robotCtrlCmd.vel_des[j] = toml::find<float>(velArr, j);
+            robotCtrlCmd.rpy_des[j] = toml::find<float>(rpyArr, j);
+            robotCtrlCmd.pos_des[j] = toml::find<float>(posArr, j);
+            robotCtrlCmd.acc_des[j] = toml::find<float>(accArr, j);
+            robotCtrlCmd.acc_des[j + 3] = toml::find<float>(accArr, j + 3);
+            robotCtrlCmd.ctrl_point[j] = toml::find<float>(ctrlPointArr, j);
+            robotCtrlCmd.foot_pose[j] = toml::find<float>(footPoseArr, j);
+            robotCtrlCmd.foot_pose[j + 3] = toml::find<float>(footPoseArr, j + 3);
             if (j < 2)
-                robotCtrlCmd.step_height[j] = toml::find<float>(height_get, j);
+                robotCtrlCmd.step_height[j] = toml::find<float>(stepHeightArr, j);
         }
         result.push_back(robotCtrlCmd);
     }
     return result;
 }
 
-/// @brief 简化发布动作的过程
-/// @param vel_x [in] 发布的狗 x 方向速度
-/// @param vel_y [in] 发布的狗 y 方向速度
-/// @param vel_yaw [in] 发布的狗 yaw 方向速度
-/// @param step_height [in] 抬腿高度
-/// @param lifeCount [in][out] 生命值
-/// @param robotControlCmd [in] 对应的 toml 动作
-/// @param lcm [in] 用于发布消息的 lcm 对象
+/// @brief Publish dog move in a more convenient way
+/// @param vel_x [in] X velocity
+/// @param vel_y [in] Y velocity
+/// @param vel_yaw [in] Yaw velocity
+/// @param step_height [in] Step height
+/// @param lifeCount [in][out] Heartbeat index
+/// @param robotControlCmd [in] Raw control command
+/// @param lcm [in] the lcm object used to publish messages
 void pubDogMove(
     double vel_x,
     double vel_y,
@@ -107,21 +119,16 @@ void pubDogMove(
     robotControlCmd.vel_des[0] = vel_x;
     robotControlCmd.vel_des[1] = vel_y;
     robotControlCmd.vel_des[2] = vel_yaw;
-    lifeCount++;
+    lifeCount = (lifeCount + 1) % 256;
     robotControlCmd.life_count = lifeCount;
     robotControlCmd.step_height[0] = step_height;
     robotControlCmd.step_height[1] = step_height;
     lcm->publish("robot_control_cmd", &robotControlCmd);
 }
 
-/// @brief 判断当前状态是否到目标点附近
-bool getStatus(double dist)
-{
-    bool state;
-    if (dist < 0.2)
-        state = false;
-    else
-        state = true;
-    return state;
-}
-#endif // __MY_UTILS_H__
+/// @brief Get whether current status is near target
+///
+/// ps. I cannot understand what you are talking
+inline bool isNearTarget(double dist) { return dist < 0.2; }
+
+#endif  // _UTILS_HPP_

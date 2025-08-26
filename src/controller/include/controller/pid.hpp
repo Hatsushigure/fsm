@@ -1,5 +1,5 @@
-#ifndef PID_HPP
-#define PID_HPP
+#ifndef _PID_HPP_
+#define _PID_HPP_
 
 class PID
 {
@@ -21,6 +21,13 @@ public:
         this->m_derivativeGain = derivativeGain;
     }
 
+    /// @brief Calculae the fix value for error
+    ///
+    /// However it actually returns the negative value of needed
+    ///
+    /// This function is used for so many times that I cannot modify it
+    /// @param error 
+    /// @return 
     double calculate(double error)
     {
         auto derivative = error - lastError;
@@ -48,4 +55,4 @@ public:
     }
 };
 
-#endif // PID_HPP
+#endif // _PID_HPP_

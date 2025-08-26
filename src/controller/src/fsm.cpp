@@ -8,7 +8,6 @@
 #include <string_view>
 #include <vector>
 #include "pid.hpp"
-#include "self_interface/msg/detail/lcmt_position__struct.hpp"
 #include "self_interface/msg/lcmt_position.hpp"
 #include "utils.hpp"
 
@@ -118,16 +117,14 @@ class fsm : public rclcpp::Node
 private:
     PID pid_y, pid_yaw; //pid的修正
     rclcpp::TimerBase::SharedPtr m_timer;
-
     rclcpp::Subscription<LCMTPosition>::SharedPtr m_dogPosSub;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr m_dogHeartBeatSub;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr m_rgbSub;
-    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_subscribe_;
-
+    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr m_lidarSub;
     double gazebo_position_x = 0;
     double gazebo_position_y = 0;
     double gazebo_position_yaw;
-    bool state; //当前的状态，是否到达目标点附近
+    bool m_nearTarget = false; //当前的状态，是否到达目标点附近
     std::shared_ptr<lcm::LCM> m_lcm = nullptr;
     std::int32_t m_lifeCount = 0;//狗的生命值
     std::vector<robot_control_cmd_lcmt> m_mainControlCmdList;
@@ -135,11 +132,11 @@ private:
     bool rgb_ok = false; // 是否使用rgb相机
     bool rgb_red = false; // 当前rgb相机中是否为红色
     bool lidar_ok; // 是否使用雷达
-    bool pass_next; // 是否穿过当前幕布
-    double lidarMidDist;//雷达数据
-    double lidarStartDist;
-    double lidarEndDist;
-    std::int32_t number_select;
+    bool pass_next = true; // 是否穿过当前幕布
+    double m_lidarMidDist = 0;//雷达数据
+    double m_lidarStartDist = 0;
+    double m_lidarEndDist = 0;
+    std::int32_t m_actionNum;
 public:
     //构造函数
     fsm(
@@ -149,24 +146,19 @@ public:
         const std::vector<robot_control_cmd_lcmt>& gaotaiControlCmdList,
         std::int32_t actionNum
     ) :
-        Node(name.data())
+        Node(name.data()),
+        m_lcm(lcm),
+        m_mainControlCmdList(mainControlCmdList),
+        m_gaotaiControlCmdList(gaotaiControlCmdList)
     {
         using namespace std::chrono_literals;
         using namespace std::placeholders;
 
         fsmState = FsmState::INIT;
-        m_lcm = lcm;
-        m_mainControlCmdList = mainControlCmdList;
-        m_gaotaiControlCmdList = gaotaiControlCmdList;
-        number_select = actionNum;
+        m_actionNum = actionNum;
         // 设置x，y和yaw方向上的kp kd ki
         pid_y.setParameters(0.04, 0.01, 0.03);
         pid_yaw.setParameters(0.03 * 3, 0.01 * 3, 0.02 * 3);
-        state = true;
-        pass_next = true;
-        lidarMidDist = 0;
-        lidarStartDist = 0;
-        lidarEndDist = 0;
 
         rclcpp::QoS sensorQosProfile(rclcpp::KeepLast(10)); //配置QoS
         sensorQosProfile.reliability(rclcpp::ReliabilityPolicy::BestEffort);
@@ -191,7 +183,7 @@ public:
             std::bind(&fsm::rgbCallback, this, _1)
         );
         //lidar订阅者
-        lidar_subscribe_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+        m_lidarSub = this->create_subscription<sensor_msgs::msg::LaserScan>(
             "/scan",
             sensorQosProfile,
             std::bind(&fsm::lidarCallback, this, _1)
@@ -211,7 +203,7 @@ private:
             "MOVE35"};//这个里面的数组长度待定
         pid_y.reset();
         pid_yaw.reset();
-        state = true;
+        m_nearTarget = false;
         int lastState = int(fsmState);//存放之前的状态
         fsmState = newState;
         RCLCPP_INFO(
@@ -240,51 +232,35 @@ private:
                 currentRobotCtrlCmd,
                 m_lcm
             );
-            if (gazebo_position_y > 0) {
-                //修改此处从不同起始位置开始
-                fsmState = (enum FsmState)number_select;
-                // fsmState = MOVE1;
-            }
+            // if (gazebo_position_y > 0)
+            //     fsmState = (enum FsmState)m_actionNum;  //修改此处从不同起始位置开始
+            changeFsmState(FsmState::MOVE1);
             break;
         case MOVE1: // 从起点走到第一个转弯处
         {
             error_x = targetPoints[0][1] - gazebo_position_y;
             error_y = targetPoints[0][0] - gazebo_position_x;
             error_yaw = targetPoints[0][2] - gazebo_position_yaw;
-            auto y_cmd = pid_y.calculate(error_y);
-            auto yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state)
-            {
-                currentRobotCtrlCmd = m_mainControlCmdList[1];
-                pubDogMove(
-                    0.3,
-                    y_cmd,
-                    yaw_cmd,
-                    0.07,
-                    m_lifeCount,
-                    currentRobotCtrlCmd,
-                    m_lcm
-                );
-            }
-            else
-            {
-                currentRobotCtrlCmd = m_mainControlCmdList[1];
-                pubDogMove(
-                    0,
-                    y_cmd,
-                    yaw_cmd,
-                    0.07,
-                    m_lifeCount,
-                    currentRobotCtrlCmd,
-                    m_lcm
-                );
-            }
+            auto yFix = pid_y.calculate(error_y);
+            auto yawFix = pid_yaw.calculate(error_yaw);
+            auto xVel = 0.3;
+            currentRobotCtrlCmd = m_mainControlCmdList[1];
+            if (m_nearTarget)
+                xVel = 0;
+            pubDogMove(
+                xVel,
+                yFix,
+                yawFix,
+                0.07,
+                m_lifeCount,
+                currentRobotCtrlCmd,
+                m_lcm
+            );
             // 计算目标位置与当前位置的直线距离
-            std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);//判断当前是否到目标点附近，如果到目标点附近state设置为false修正yaw和y
-            if (dist < 0.2 && error_yaw < 0.1) {
+            auto dist = std::sqrt(std::pow(error_x, 2) + std::pow(error_y, 2));
+            m_nearTarget = isNearTarget(dist);//判断当前是否到目标点附近，如果到目标点附近state设置为false修正yaw和y
+            if (dist < 0.2 && std::abs(error_yaw) < 0.1)
                 changeFsmState(TURN1);
-            }
             break;
         }
         case TURN1: // 沙地前转弯
@@ -292,45 +268,57 @@ private:
             error_yaw = targetPoints[1][2] - gazebo_position_yaw;
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
             currentRobotCtrlCmd = m_mainControlCmdList[1];
-            pubDogMove(0, 0, yaw_cmd * 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
-            if (abs(error_yaw) < 0.1) {
+            pubDogMove(
+                0,
+                0,
+                yaw_cmd * 2,
+                0.07,
+                m_lifeCount,
+                currentRobotCtrlCmd,
+                m_lcm
+            );
+            if (std::abs(error_yaw) < 0.1)
                 changeFsmState(MOVE2);
-            }
             break;
         }
-        case MOVE2: { // 通过沙地
-            /*
-            正确的方向（不需要添加负号）：y轴负向，x轴正向
-            需要添加负号的方向：y轴正向，x轴负向
-            */
-            error_x = targetPoints[2][1] - gazebo_position_y;
-            error_y = targetPoints[2][0] - gazebo_position_x;
+        case MOVE2:  // 通过沙地
+        {
+            error_x = targetPoints[2][1] - gazebo_position_x;
+            error_y = targetPoints[2][1] - gazebo_position_y;
             error_yaw = targetPoints[2][2] - gazebo_position_yaw;
-            double y_cmd = pid_y.calculate(error_x);
-            double yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state)
-            {
-                currentRobotCtrlCmd = m_mainControlCmdList[1];
-                pubDogMove(0.2, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
-            }
-            else
-            {
-                currentRobotCtrlCmd = m_mainControlCmdList[1];
-                pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
-            }
-            std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            auto yFix = pid_y.calculate(error_y);
+            auto yawFix = pid_yaw.calculate(error_yaw);
+            auto xVel = 0.2;
+            currentRobotCtrlCmd = m_mainControlCmdList[1];
+            if (m_nearTarget)
+                xVel = 0;
+            pubDogMove(
+                xVel,
+                yFix,
+                yawFix,
+                0.07,
+                m_lifeCount,
+                currentRobotCtrlCmd,
+                m_lcm
+            );
+            auto dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1)
                 changeFsmState(MOVE3);
             break;
         }
-        case MOVE3: { // 通过石子路+上斜坡
+        case MOVE3: // 通过石子路+上斜坡
+        {
             currentRobotCtrlCmd = m_mainControlCmdList[2];
-            static bool move3_msg_sent = false;
-            if (!move3_msg_sent) {
-                pubDogMove(0.15, 0, 0, 0.15, m_lifeCount, currentRobotCtrlCmd, m_lcm);
-                move3_msg_sent = true;
-            }
+            pubDogMove(
+                0.15,
+                0,
+                0,
+                0.15,
+                m_lifeCount,
+                currentRobotCtrlCmd,
+                m_lcm
+            );
             if (gazebo_position_x > 5.2)
                 changeFsmState(MOVE4);
             break;
@@ -341,7 +329,8 @@ private:
             error_yaw = targetPoints[4][2] - gazebo_position_yaw;
             auto y_cmd = pid_y.calculate(error_x);
             auto yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget)
+            {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.4, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -350,7 +339,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(TURN2);
             }
@@ -372,7 +361,7 @@ private:
             error_yaw = targetPoints[6][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.4, -y_cmd, yaw_cmd, 0.12, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -381,12 +370,10 @@ private:
                 pubDogMove(0, -y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            if (dist < 0.2 || gazebo_position_y > 3.0) {
-                state = false;
-            }
-            else {
-                state = true;
-            }
+            if (dist < 0.2 || gazebo_position_y > 3.0)
+                m_nearTarget = true;
+            else
+                m_nearTarget = false;
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE26);
             }
@@ -407,7 +394,7 @@ private:
             error_yaw = targetPoints[9][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_x);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -416,7 +403,7 @@ private:
                 pubDogMove(0, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE8);
             }
@@ -431,7 +418,7 @@ private:
             error_yaw = targetPoints[10][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_x);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[3];
                 pubDogMove(0.3, -y_cmd, yaw_cmd, 0.08, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -440,7 +427,7 @@ private:
                 pubDogMove(0, -y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2) {
                 changeFsmState(TURN3);
             }
@@ -467,11 +454,11 @@ private:
             if (rgb_red && pass_next) {//有红色并且是已经通过了后面那个，说明要往左边或者右边走了
                 //首先我要确保狗是正的，这时在这里就可以用lidar了
                 //如果左边大于右边 则说明要往左走，否则往右走，只水平平移，不前进
-                if (lidarStartDist > lidarEndDist && lidarEndDist > 0.05) {
+                if (m_lidarStartDist > m_lidarEndDist && m_lidarEndDist > 0.05) {
                     currentRobotCtrlCmd = m_mainControlCmdList[1];
                     pubDogMove(0, 0.1, 0, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
                 }
-                else if (lidarStartDist <= lidarEndDist && lidarStartDist > 0.05) {
+                else if (m_lidarStartDist <= m_lidarEndDist && m_lidarStartDist > 0.05) {
                     currentRobotCtrlCmd = m_mainControlCmdList[1];
                     pubDogMove(0, -0.1, 0, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
                 }
@@ -480,8 +467,8 @@ private:
                 pass_next = false;//首先设置为false
                 //这个时候说明前方是绿色的了，首先直行 这个我觉得是根据lidar的距离用pid来让他通过
                 //如果穿过了就设置pass_next为true
-                if (6.9 < lidarMidDist < 7.1 || 5.9 < lidarMidDist < 6.1 ||
-                    4.9 < lidarMidDist < 5.1 || 3.9 < lidarMidDist < 4.1) {
+                if (6.9 < m_lidarMidDist < 7.1 || 5.9 < m_lidarMidDist < 6.1 ||
+                    4.9 < m_lidarMidDist < 5.1 || 3.9 < m_lidarMidDist < 4.1) {
                     pass_next = true;
                 }
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
@@ -495,7 +482,7 @@ private:
             error_yaw = targetPoints[12][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -504,7 +491,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE11);
             }
@@ -516,7 +503,7 @@ private:
             error_yaw = targetPoints[13][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0, -0.1, 0, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -525,7 +512,7 @@ private:
                 pubDogMove(0, y_cmd * 2, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE12);
             }
@@ -537,7 +524,7 @@ private:
             error_yaw = targetPoints[14][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -546,7 +533,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE13);
             }
@@ -558,7 +545,7 @@ private:
             error_yaw = targetPoints[15][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0, 0.1, 0, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -567,7 +554,7 @@ private:
                 pubDogMove(0, y_cmd * 2, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE14);
             }
@@ -579,7 +566,7 @@ private:
             error_yaw = targetPoints[16][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -588,7 +575,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE15);
             }
@@ -600,7 +587,7 @@ private:
             error_yaw = targetPoints[17][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0, -0.1, 0, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -609,7 +596,7 @@ private:
                 pubDogMove(0, y_cmd * 2, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE16);
             }
@@ -621,7 +608,7 @@ private:
             error_yaw = targetPoints[18][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -630,7 +617,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE17);
             }
@@ -642,7 +629,7 @@ private:
             error_yaw = targetPoints[0][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -651,7 +638,7 @@ private:
                 pubDogMove(0, y_cmd, yaw_cmd, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(MOVE6);
             }
@@ -676,7 +663,7 @@ private:
             error_yaw = targetPoints[19][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.1, -y_cmd / 2, yaw_cmd / 3, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -707,7 +694,7 @@ private:
             error_yaw = targetPoints[21][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.1, -y_cmd / 2, yaw_cmd / 3, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -738,7 +725,7 @@ private:
             error_yaw = targetPoints[23][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.1, -y_cmd / 2, yaw_cmd / 3, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -769,7 +756,7 @@ private:
             error_yaw = targetPoints[25][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.1, 0, yaw_cmd / 3, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -800,7 +787,7 @@ private:
             error_yaw = targetPoints[26][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_x);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 if (error_y < 0) {
                     pubDogMove(0, y_cmd * 3, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
@@ -822,12 +809,12 @@ private:
         case MOVE28: { // 雷达绕障结束
             currentRobotCtrlCmd = m_mainControlCmdList[1];
             RCLCPP_INFO(this->get_logger(), "vel_x:%lf", vel_x);
-            if (lidarStartDist < 0.28) {
-                // RCLCPP_INFO(this->get_logger(),"lidarStartDist:%lf", lidarStartDist);
+            if (m_lidarStartDist < 0.28) {
+                // RCLCPP_INFO(this->get_logger(),"m_lidarStartDist:%lf", m_lidarStartDist);
                 pubDogMove(vel_x, 0, vel_right, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
-            else if (lidarEndDist < 0.3) {
-                // RCLCPP_INFO(this->get_logger(),"lidarEndDist:%lf", lidarEndDist);
+            else if (m_lidarEndDist < 0.3) {
+                // RCLCPP_INFO(this->get_logger(),"m_lidarEndDist:%lf", m_lidarEndDist);
                 pubDogMove(vel_x, 0, vel_left, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             else {
@@ -858,7 +845,7 @@ private:
             error_yaw = targetPoints[27][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.3, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -867,7 +854,7 @@ private:
                 pubDogMove(0, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             std::double_t dist = sqrt(pow(error_x, 2) + pow(error_y, 2));
-            state = getStatus(dist);
+            m_nearTarget = isNearTarget(dist);
             if (dist < 0.2 && error_yaw < 0.1) {
                 changeFsmState(TURN4);
             }
@@ -927,7 +914,7 @@ private:
             error_yaw = targetPoints[31][2] - gazebo_position_yaw;
             std::double_t y_cmd = pid_y.calculate(error_y);
             std::double_t yaw_cmd = pid_yaw.calculate(error_yaw);
-            if (state) {
+            if (!m_nearTarget) {
                 currentRobotCtrlCmd = m_mainControlCmdList[1];
                 pubDogMove(0.1, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
@@ -936,10 +923,10 @@ private:
                 pubDogMove(0, -y_cmd, yaw_cmd / 2, 0.07, m_lifeCount, currentRobotCtrlCmd, m_lcm);
             }
             if (gazebo_position_y > test) {
-                state = false;
+                m_nearTarget = true;
             }
             else {
-                state = true;
+                m_nearTarget = false;
             }
             if (gazebo_position_y > test && abs(error_yaw) < 0.1) {
                 changeFsmState(MOVE35);
@@ -1066,9 +1053,9 @@ private:
         if (lidar_ok) {
             std::int32_t lidarRange = msg.ranges.size();
             std::int32_t lidarMid = lidarRange / 2;
-            lidarStartDist = msg.ranges[0];
-            lidarMidDist = msg.ranges[lidarMid];//90度
-            lidarEndDist = msg.ranges[179];
+            m_lidarStartDist = msg.ranges[0];
+            m_lidarMidDist = msg.ranges[lidarMid];//90度
+            m_lidarEndDist = msg.ranges[179];
         }
     }
 };
@@ -1105,21 +1092,24 @@ int main(int argc, char** argv)
         prefix
     );
 
-    const toml::value data_gaotai = toml::parse("./src/controller/src/platform_v1.toml");
+    // const toml::value data_gaotai = toml::parse("./src/controller/src/platform_v1.toml");
+    const toml::value data_gaotai = toml::parse("./src/controller/src/cyberdog2_ctrl.toml");
 
-    std::vector<robot_control_cmd_lcmt> gaotai_robot_control_cmds_vector = getTomlArray(data_gaotai, toml_gaotai_len, prefix_gaotai);
+    std::vector<robot_control_cmd_lcmt> gaotaiCtrlCmdList = getTomlArray(
+        data_gaotai,
+        toml_gaotai_len,
+        prefix_gaotai
+    );
 
     rclcpp::init(argc, argv);
     auto lcm = std::make_shared<lcm::LCM>("udpm://239.255.76.67:7671?ttl=255");
-    /*创建对应节点的共享指针对象*/
     auto node = std::make_shared<fsm>(
         "fsm",
         lcm,
         mainCtrlCmdList,
-        gaotai_robot_control_cmds_vector,
+        gaotaiCtrlCmdList,
         actionNum
     );
-    /* 运行节点，并检测退出信号*/
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
